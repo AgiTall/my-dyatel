@@ -127,10 +127,8 @@ def migrate(db) -> None:
         add_col("patient_profiles", "created_by", "INTEGER")
         add_col("doctor_profiles", "signature_data", "TEXT DEFAULT ''")
 
-        # Принудительная смена стандартного пароля 123456 для персонала
-        for u_row in conn.execute("SELECT id, role, password_hash FROM users WHERE is_active=1").fetchall():
-            if u_row["role"] in ("doctor", "nurse") and verify_password("123456", u_row["password_hash"]):
-                conn.execute("UPDATE users SET must_change_password=1 WHERE id=?", (u_row["id"],))
+        # Сброс принудительной смены пароля для всех пользователей
+        conn.execute("UPDATE users SET must_change_password=0 WHERE must_change_password=1")
 
         conn.execute(
             "CREATE UNIQUE INDEX IF NOT EXISTS idx_appt_slot_active "
@@ -361,9 +359,6 @@ def _route(db, method, path, query, body, token):
 
     if method == "GET" and path == "/me":
         return {"success": True, "user": user}
-
-    if user.get("must_change_password") and path != "/password":
-        raise ApiError("Необходимо сменить временный пароль перед началом работы", 403)
 
     if method == "POST" and path == "/password":
         old, new = str(body.get("old", "")), str(body.get("new", ""))
@@ -682,7 +677,6 @@ def _route(db, method, path, query, body, token):
         if not ok:
             raise ApiError(msg)
         creator = staff_doctor_id(user) or user["id"]
-        _exec(db, "UPDATE users SET must_change_password=1 WHERE id=?", (pid,))
         _exec(db, "UPDATE patient_profiles SET district=?, clinic=?, created_by=? WHERE user_id=?",
               (str(body.get("district", "")).strip(), str(body.get("clinic", "")).strip(), creator, pid))
         audit(db, user, "patient_create", "patient", pid, f"Создана карта пациента {body.get('full_name', '')}")
@@ -759,7 +753,6 @@ def _admin(db, method, path, query, body, user):
             "work_hours": str(body.get("work_hours", "")).strip() or "08:00 - 16:00"})
         if not ok:
             raise ApiError(msg)
-        _exec(db, "UPDATE users SET must_change_password=1 WHERE id=?", (uid,))
         audit(db, user, "doctor_create", "user", uid, f"Добавлен врач {body.get('full_name', '')}")
         return {"success": True, "message": f"Врач добавлен. Временный пароль: {temp_pw}", "id": uid, "temp_password": temp_pw}
 
@@ -776,7 +769,7 @@ def _admin(db, method, path, query, body, user):
             raise ApiError("Пароль — минимум 6 символов")
         try:
             uid = _exec(db, "INSERT INTO users (iin, password_hash, full_name, email, phone, role, must_change_password, created_at) "
-                            "VALUES (?, ?, ?, '', ?, 'nurse', 1, ?)",
+                            "VALUES (?, ?, ?, '', ?, 'nurse', 0, ?)",
                         (iin, hash_password(temp_pw), name, str(body.get("phone", "")), now()))
         except sqlite3.IntegrityError:
             raise ApiError("Пользователь с таким ИИН уже есть")
@@ -810,7 +803,7 @@ def _admin(db, method, path, query, body, user):
         if body.get("password"):
             if len(str(body["password"])) < 6:
                 raise ApiError("Пароль — минимум 6 символов")
-            _exec(db, "UPDATE users SET password_hash=?, must_change_password=1 WHERE id=?",
+            _exec(db, "UPDATE users SET password_hash=? WHERE id=?",
                   (hash_password(str(body["password"])), u["id"]))
         if u["role"] == "doctor" and body.get("cabinet_num"):
             _exec(db, "UPDATE doctor_profiles SET cabinet_num=? WHERE user_id=?", (str(body["cabinet_num"]), u["id"]))

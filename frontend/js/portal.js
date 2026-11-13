@@ -113,21 +113,6 @@ function renderShell() {
   if (!state.tab || !tabs.some(t => t[0] === state.tab)) state.tab = tabs[0][0];
   const sub = u.role === "doctor" ? `${esc(u.specialty)} · каб. ${esc(u.cabinet_num)}`
     : u.role === "nurse" ? `Мед. сестра врача: ${esc(u.doctor_name || "—")}` : ROLE_NAMES[u.role];
-  if (u.must_change_password) {
-    $("app").innerHTML = `<div class="topbar"><div class="logo" style="display:flex;align-items:center;gap:8px;line-height:1"><img src="/favicon.png" alt="" style="width:28px;height:28px;object-fit:contain;display:block;flex-shrink:0;transform:translateY(2px)"><span style="line-height:1;transform:translateY(-1px)">My <b>Dyatel</b></span></div>
-      <div class="who"><b>${esc(u.full_name)}</b><small>${sub}</small></div>
-      <button class="btn ghost sm" onclick="logout()">Выйти</button></div>
-      <main id="view"><div class="card" style="max-width:440px;margin:40px auto">
-        <h3>Требуется смена временного пароля</h3>
-        <p class="muted">Для продолжения работы задайте новый постоянный пароль (минимум 6 символов, отличный от текущего).</p>
-        <form onsubmit="changePassword(event)">
-          <div class="field"><label>Текущий пароль</label><input type="password" name="old" required autofocus></div>
-          <div class="field"><label>Новый пароль (от 6 символов)</label><input type="password" name="new" minlength="6" required></div>
-          <button class="btn" style="width:100%">Сохранить новый пароль</button>
-        </form>
-      </div></main>`;
-    return;
-  }
   $("app").innerHTML = `<div class="topbar"><div class="logo" style="display:flex;align-items:center;gap:8px;line-height:1"><img src="/favicon.png" alt="" style="width:28px;height:28px;object-fit:contain;display:block;flex-shrink:0;transform:translateY(2px)"><span style="line-height:1;transform:translateY(-1px)">My <b>Dyatel</b></span></div>
     <div class="who"><b>${esc(u.full_name)}</b><small>${sub}</small></div>
     <button class="btn ghost sm" onclick="logout()">Выйти</button></div>
@@ -442,7 +427,7 @@ function showTempPasswordModal(roleLabel, r) {
   if (!r || !r.temp_password) return;
   modal(`${esc(roleLabel)} создан`, `<p>${esc(r.message || "")}</p>
     <div class="card" style="text-align:center;font-size:18px;letter-spacing:1px"><b>${esc(r.temp_password)}</b></div>
-    <p class="muted small">Передайте временный пароль пользователю. При первом входе система потребует сменить его.</p>
+    <p class="muted small">Передайте временный пароль пользователю.</p>
     <button class="btn" style="width:100%" onclick="closeModal()">Понятно</button>`, true);
 }
 async function saveNewPatient(e) {
