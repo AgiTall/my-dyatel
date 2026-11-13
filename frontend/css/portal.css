@@ -120,5 +120,12 @@ html[data-theme="dark"] .theme-toggle .icon-moon { display: block; }
 .sig-pad-wrap::after { content: "Линия подписи (1:1)"; position: absolute; left: 16px; right: 16px; bottom: 26%; border-bottom: 1px dashed #cbd5e1; color: #94a3b8; font-size: 11px; text-align: right; padding-bottom: 3px; pointer-events: none; }
 #sigCanvas { width: 100%; height: 100%; display: block; cursor: crosshair; position: relative; z-index: 2; }
 
+/* Полноэкранное подтверждение опасного действия */
+.danger-screen { position: fixed; inset: 0; z-index: 200; background: rgba(15,23,42,.88); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; padding: 20px; }
+.danger-box { max-width: 520px; width: 100%; background: var(--card); border: 2px solid var(--red); border-top: 6px solid var(--red); padding: 28px; text-align: center; box-shadow: 0 24px 60px rgba(0,0,0,.45); }
+.danger-box h2 { font-size: 22px; margin: 0 0 10px; color: var(--red); }
+.danger-box p { margin: 0 0 22px; color: var(--muted); line-height: 1.5; }
+.danger-box .row { justify-content: center; gap: 12px; }
+
 @media (max-width: 980px) { .cabinet-grid { grid-template-columns: 1fr; } .patient-tiles { grid-template-columns: 1fr; } }
 @media (max-width: 640px) { .grid2, .visit-meta { grid-template-columns: 1fr; } main { padding: 12px; } }

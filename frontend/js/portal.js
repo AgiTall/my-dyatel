@@ -1215,7 +1215,7 @@ VIEWS.overview = async () => {
     <div class="stat"><b>${c.patients}</b>Пациентов</div><div class="stat"><b>${c.appointments}</b>Записей</div>
     <div class="stat"><b>${o.cabinets.length}</b>Кабинетов</div></div>
     <div class="card"><div class="row between"><h3 style="margin:0">Врачи и кабинеты</h3>
-      <div class="row"><button class="btn ghost sm" onclick="go('cabinets')">+ Кабинет</button><button class="btn sm" onclick="go('doctors')">+ Врач</button></div></div>
+      <div class="row"><button class="btn ghost sm" onclick="go('cabinets')">+ Кабинет</button><button class="btn sm" onclick="go('doctors')">+ Врач</button><button class="btn danger sm" onclick="resetDatabase()">Очистить всю базу</button></div></div>
       ${table(["Врач", "Специальность", "Кабинет"], o.doctors.map(d => [esc(d.full_name), esc(d.specialty), esc(d.cabinet_num)]), "База пуста — сначала добавьте кабинеты и врачей")}</div>`;
 };
 const cabinetSelect = (o, sel) => `<select name="cabinet_num" required>${o.cabinets.map(c => `<option ${c.number === sel ? "selected" : ""} value="${esc(c.number)}">${esc(c.number)}${c.name ? " — " + esc(c.name) : ""}</option>`).join("")}</select>`;
@@ -1224,7 +1224,7 @@ VIEWS.doctors = async () => {
   const o = await overview();
   $("view").innerHTML = `<div class="card"><div class="row between"><h3 style="margin:0">Врачи</h3><button class="btn" onclick="doctorForm()">+ Добавить врача</button></div>
     ${table(["ФИО", "ИИН", "Специальность", "Кабинет", "График", ""], o.doctors.map(d => [`<b>${esc(d.full_name)}</b>`, esc(d.iin), esc(d.specialty), esc(d.cabinet_num), esc(d.work_hours || "08:00 - 16:00"),
-      `<button class="btn ghost sm" onclick="userEdit(${d.id})">Изменить</button> <button class="btn danger sm" onclick="userDelete(${d.id})">В архив</button>`]), "Врачей пока нет. Сначала создайте кабинет во вкладке «Кабинеты», затем добавьте врача.")}</div>`;
+      `<button class="btn ghost sm" onclick="userEdit(${d.id})">Изменить</button> <button class="btn danger sm" onclick="userDelete(${d.id})">Удалить</button>`]), "Врачей пока нет. Сначала создайте кабинет во вкладке «Кабинеты», затем добавьте врача.")}</div>`;
 };
 function doctorForm() {
   const o = state.cache.ov;
@@ -1249,7 +1249,7 @@ VIEWS.nurses = async () => {
   const o = await overview();
   $("view").innerHTML = `<div class="card"><div class="row between"><h3 style="margin:0">Медсёстры</h3><button class="btn" onclick="nurseForm()">+ Добавить медсестру</button></div>
     ${table(["ФИО", "ИИН", "Привязана к врачу", ""], o.nurses.map(n => [`<b>${esc(n.full_name)}</b>`, esc(n.iin), esc(n.doctor_name),
-      `<button class="btn ghost sm" onclick="userEdit(${n.id})">Изменить</button> <button class="btn danger sm" onclick="userDelete(${n.id})">В архив</button>`]), "Медсестёр пока нет")}</div>`;
+      `<button class="btn ghost sm" onclick="userEdit(${n.id})">Изменить</button> <button class="btn danger sm" onclick="userDelete(${n.id})">Удалить</button>`]), "Медсестёр пока нет")}</div>`;
 };
 const doctorSelect = (o, sel) => `<select name="doctor_id" required>${o.doctors.map(d => `<option value="${d.id}" ${d.id === sel ? "selected" : ""}>${esc(d.full_name)} — ${esc(d.specialty)}</option>`).join("")}</select>`;
 function nurseForm() {
@@ -1282,15 +1282,42 @@ async function saveUser(e, id) {
   const d = formData(e); d.id = id;
   if (await act(() => api("/admin/user/update", d))) { closeModal(); refresh(); }
 }
-async function userDelete(id) {
-  if (!confirm("Перенести пользователя в архив? Вход будет закрыт, но история и документы сохранятся.")) return;
-  if (await act(() => api("/admin/user/delete", { id }))) refresh();
+function confirmFullScreen(title, text, okLabel, onConfirm) {
+  const el = document.createElement("div");
+  el.className = "danger-screen";
+  el.innerHTML = `<div class="danger-box">
+    <h2>${esc(title)}</h2>
+    <p>${esc(text)}</p>
+    <div class="row">
+      <button type="button" class="btn ghost" id="dfCancel">Отмена</button>
+      <button type="button" class="btn danger" id="dfOk">${esc(okLabel)}</button>
+    </div>
+  </div>`;
+  document.body.appendChild(el);
+  el.querySelector("#dfCancel").onclick = () => el.remove();
+  el.querySelector("#dfOk").onclick = async () => { el.remove(); await onConfirm(); };
+}
+function userDelete(id) {
+  confirmFullScreen(
+    "Вы точно хотите это сделать?",
+    "Пользователь и все связанные с ним данные будут удалены безвозвратно.",
+    "Да, удалить",
+    async () => { if (await act(() => api("/admin/user/delete", { id }))) refresh(); }
+  );
+}
+function resetDatabase() {
+  confirmFullScreen(
+    "Вы точно хотите это сделать?",
+    "Вся база данных (врачи, медсёстры, пациенты, кабинеты, записи, справки, рецепты и журнал) будет полностью очищена! Останется только главный администратор.",
+    "Да, очистить всю базу",
+    async () => { if (await act(() => api("/admin/reset-db", {}))) refresh(); }
+  );
 }
 
 VIEWS.audit = async () => {
   const [aRes, bRes] = await Promise.all([api("/admin/audit"), api("/admin/backups")]);
-  $("view").innerHTML = `<div class="card"><div class="row between"><h3 style="margin:0">Резервное копирование БД</h3>
-      <button class="btn" onclick="createBackup()">+ Создать резервную копию</button></div>
+  $("view").innerHTML = `<div class="card"><div class="row between"><h3 style="margin:0">Резервное копирование и очистка БД</h3>
+      <div class="row"><button class="btn" onclick="createBackup()">+ Создать резервную копию</button><button class="btn danger" onclick="resetDatabase()">Очистить всю базу</button></div></div>
       <div class="muted small" style="margin-top:8px">${bRes.backups.length ? "Сохранённые копии: " + bRes.backups.slice(0, 5).map(esc).join(", ") : "Резервных копий пока нет"}</div></div>
     <div class="card"><h3>Журнал действий (аудит)</h3>
       ${table(["Время", "Пользователь", "Действие", "Детали"], aRes.logs.map(l => [

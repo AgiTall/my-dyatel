@@ -821,12 +821,27 @@ def _admin(db, method, path, query, body, user):
         if not u:
             raise ApiError("Пользователь не найден", 404)
         if u["role"] == "superadmin":
-            raise ApiError("Нельзя архивировать администратора")
-        _exec(db, "UPDATE users SET is_active=0, archived_at=? WHERE id=?", (now(), u["id"]))
+            raise ApiError("Нельзя удалить администратора")
+        _exec(db, "DELETE FROM users WHERE id=?", (u["id"],))
         for t, uid in list(SESSIONS.items()):
             if uid == u["id"]:
                 SESSIONS.pop(t, None)
-        audit(db, user, "user_archive", "user", u["id"], f"Архивирован пользователь {u['full_name']} ({u['role']})")
-        return {"success": True, "message": "Пользователь перенесён в архив (история и документы сохранены)"}
+        audit(db, user, "user_delete", "user", u["id"], f"Удалён пользователь {u['full_name']} ({u['role']})")
+        return {"success": True, "message": f"Пользователь {u['full_name']} удалён"}
+
+    if method == "POST" and path == "/reset-db":
+        with db.get_connection() as conn:
+            for tbl in ("appointments", "medical_records", "prescriptions", "sick_leaves",
+                        "referrals", "vaccination_records", "lab_orders", "imaging_studies",
+                        "medical_certificates", "nurse_profiles", "doctor_profiles",
+                        "patient_profiles", "cabinets", "audit_log"):
+                conn.execute(f"DELETE FROM {tbl}")
+            conn.execute("DELETE FROM users WHERE role != 'superadmin'")
+            conn.commit()
+        for t, uid in list(SESSIONS.items()):
+            if uid != user["id"]:
+                SESSIONS.pop(t, None)
+        audit(db, user, "db_reset", "system", None, "Полная очистка базы данных администратором")
+        return {"success": True, "message": "База данных полностью очищена"}
 
     raise ApiError("Маршрут не найден", 404)
