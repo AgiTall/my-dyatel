@@ -447,17 +447,17 @@ VIEWS.home = async () => {
 
   const tiles = `<div class="patient-tiles">
     <button type="button" class="pt-tile ${sec === "osms" ? "active" : ""}" onclick="switchPtHome('osms')">
-      <span class="t-icon">🛡️</span>
+      <span class="t-icon" style="color:#fff"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></span>
       <span class="t-title">Пакет ОСМС</span>
       <span class="t-sub">Статус: ${esc(p.osms_status || "Не указан")}</span>
     </button>
     <button type="button" class="pt-tile ${sec === "clinic" ? "active" : ""}" onclick="switchPtHome('clinic')">
-      <span class="t-icon">🏥</span>
+      <span class="t-icon" style="color:#fff"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M5 21V7l7-4 7 4v14"/><path d="M12 9v4"/><path d="M10 11h4"/></svg></span>
       <span class="t-title">Моя поликлиника</span>
       <span class="t-sub">${esc(p.clinic || "Прикрепление и запись к врачу")}</span>
     </button>
     <button type="button" class="pt-tile ${sec === "data" ? "active" : ""}" onclick="switchPtHome('data')">
-      <span class="t-icon">🗂️</span>
+      <span class="t-icon" style="color:#fff"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></span>
       <span class="t-title">Мои данные</span>
       <span class="t-sub">Медкарта, рентген, анализы, рецепты</span>
     </button>
