@@ -841,7 +841,6 @@ def _admin(db, method, path, query, body, user):
         for t, uid in list(SESSIONS.items()):
             if uid != user["id"]:
                 SESSIONS.pop(t, None)
-        audit(db, user, "db_reset", "system", None, "Полная очистка базы данных администратором")
-        return {"success": True, "message": "База данных полностью очищена"}
+        return {"success": True, "message": "База данных и журнал полностью очищены"}
 
     raise ApiError("Маршрут не найден", 404)
